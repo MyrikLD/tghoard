@@ -1,6 +1,7 @@
 services:
   tghoard:
     build: .
+    image: ghcr.io/myrikld/tghoard:latest
     restart: unless-stopped
     env_file: .env
     environment:
