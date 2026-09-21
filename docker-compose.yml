@@ -1,0 +1,13 @@
+services:
+  tghoard:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      DOWNLOAD_DIR: /downloads
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+      - ./downloads:/downloads

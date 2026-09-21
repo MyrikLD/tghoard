@@ -1,0 +1,20 @@
+<table>
+  {% for d in dialogs %}
+  <tr>
+    <td class="name">{{ d.title }}</td>
+    <td><span class="badge">{{ d.kind }}</span></td>
+    <td class="muted small">{{ "@" + d.username if d.username else d.tg_chat_id }}</td>
+    <td class="num">
+      <form class="inline" method="post" action="/chats/add">
+        <input type="hidden" name="account_id" value="{{ account_id }}">
+        <input type="hidden" name="tg_chat_id" value="{{ d.tg_chat_id }}">
+        <input type="hidden" name="title" value="{{ d.title }}">
+        <input type="hidden" name="kind" value="{{ d.kind }}">
+        <button class="sm">Add</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td class="muted">Nothing found.</td></tr>
+  {% endfor %}
+</table>

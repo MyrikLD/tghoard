@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Chats · tghoard{% endblock %}
+{% block content %}
+<h1>Chats</h1>
+
+<div class="panel">
+  <h3>Add chat</h3>
+  {% if accounts %}
+  <div class="row">
+    <select name="account_id" id="dialog-account"
+            hx-get="/chats/dialogs" hx-target="#dialogs" hx-trigger="change" hx-include="#dialog-q">
+      {% for a in accounts %}<option value="{{ a.id }}">{{ a.phone }} {{ a.display_name or "" }}</option>{% endfor %}
+    </select>
+    <input type="text" id="dialog-q" name="q" placeholder="filter dialogs…"
+           hx-get="/chats/dialogs" hx-target="#dialogs" hx-trigger="keyup changed delay:300ms" hx-include="#dialog-account">
+    <button type="button" class="sm" hx-get="/chats/dialogs" hx-target="#dialogs" hx-include="#dialog-account, #dialog-q">Show dialogs</button>
+    <button type="button" class="sm" title="Fetch the dialog list from Telegram again"
+            hx-get="/chats/dialogs?refresh=1" hx-target="#dialogs" hx-include="#dialog-account, #dialog-q">Refresh</button>
+  </div>
+  <div id="dialogs" style="max-height: 320px; overflow: auto; margin-top: 8px"></div>
+  {% else %}
+  <span class="muted">No connected accounts. <a href="/accounts">Add one</a> first.</span>
+  {% endif %}
+</div>
+
+<div id="chat-list">
+{% for c in chats %}
+{% set st = stats[c.id] %}
+<div class="panel" id="chat-{{ c.id }}">
+  <div class="row" style="justify-content: space-between">
+    <div>
+      <strong>{{ c.title }}</strong>
+      <span class="badge">{{ c.kind }}</span>
+      <span class="muted small">{{ c.account_phone }} · id {{ c.tg_chat_id }} · scanned up to #{{ c.last_scanned_msg_id }}</span>
+      {% if not c.enabled %}<span class="badge failed">disabled</span>{% endif %}
+      {% if c.watch %}<span class="badge active">watch</span>{% endif %}
+      {% if scanning[c.id] or c.scan_status == "scanning" %}<span class="badge scanning">scanning</span>{% endif %}
+      {% if c.scan_status == "error" %}<span class="badge error" title="{{ c.scan_error }}">scan error</span>{% endif %}
+    </div>
+    <div class="row">
+      <a class="small" href="/files?chat_id={{ c.id }}">
+        {{ st.new }} new · {{ st.queued }} queued · {{ st.downloading }} active · {{ st.done }} done · {{ st.failed }} failed
+      </a>
+      <form class="inline" method="post" action="/chats/{{ c.id }}/scan"><button class="sm" {% if scanning[c.id] %}disabled{% endif %}>Scan</button></form>
+      <form class="inline" method="post" action="/chats/{{ c.id }}/rescan" onsubmit="return confirm('Scan the whole history again?')"><button class="sm" {% if scanning[c.id] %}disabled{% endif %}>Rescan</button></form>
+      <form class="inline" method="post" action="/chats/{{ c.id }}/queue-all"><button class="sm primary">Queue all new</button></form>
+      <form class="inline" method="post" action="/chats/{{ c.id }}/delete" onsubmit="return confirm('Remove chat and its file records? Downloaded files stay on disk.')"><button class="sm danger">Remove</button></form>
+    </div>
+  </div>
+  {% if c.scan_error %}<div class="small" style="color: var(--err); margin-top: 6px">{{ c.scan_error }}</div>{% endif %}
+  <details>
+    <summary>Settings</summary>
+    <form method="post" action="/chats/{{ c.id }}/settings" class="settings">
+      <label>Media</label>
+      <div>{% for k in media_kinds %}<label class="chk"><input type="checkbox" name="kind_{{ k }}" {% if k in c.media_kinds %}checked{% endif %}> {{ k }}</label>{% endfor %}</div>
+      <label>Size, MB</label>
+      <div class="row">
+        <input class="short" type="number" step="0.1" name="min_size_mb" placeholder="min" value="{{ (c.min_size / 1048576) | round(1) if c.min_size else '' }}">
+        <input class="short" type="number" step="0.1" name="max_size_mb" placeholder="max" value="{{ (c.max_size / 1048576) | round(1) if c.max_size else '' }}">
+      </div>
+      <label>Flags</label>
+      <div>
+        <label class="chk"><input type="checkbox" name="enabled" {% if c.enabled %}checked{% endif %}> enabled</label>
+        <label class="chk"><input type="checkbox" name="watch" {% if c.watch %}checked{% endif %}> watch new messages</label>
+        <label class="chk"><input type="checkbox" name="auto_queue" {% if c.auto_queue %}checked{% endif %}> auto-queue found files</label>
+      </div>
+      <span></span>
+      <div><button class="sm primary">Save</button></div>
+    </form>
+  </details>
+</div>
+{% else %}
+<p class="muted">No chats added yet.</p>
+{% endfor %}
+</div>
+{% endblock %}

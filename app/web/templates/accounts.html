@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Accounts · tghoard{% endblock %}
+{% block content %}
+<h1>Accounts</h1>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<div class="panel">
+  <table>
+    <tr><th>Phone</th><th>Name</th><th>Status</th><th></th></tr>
+    {% for a in accounts %}
+    <tr>
+      <td>{{ a.phone }}</td>
+      <td>{{ a.display_name or "" }}</td>
+      <td>
+        <span class="badge {{ a.status }}">{{ a.status }}</span>
+        {% if a.status == "active" and not a.connected %}<span class="badge error">disconnected</span>{% endif %}
+        {% if a.error %}<div class="small muted">{{ a.error }}</div>{% endif %}
+      </td>
+      <td>
+        <form class="inline" method="post" action="/accounts/{{ a.id }}/delete" onsubmit="return confirm('Remove account and its chats/files records?')"><button class="sm danger">Remove</button></form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">No accounts.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% for a in pending %}
+<div class="panel">
+  {% if a.status == "pending_code" %}
+  <h3>Enter the code Telegram sent to {{ a.phone }}</h3>
+  <form method="post" action="/accounts/{{ a.id }}/code" class="row">
+    <input type="text" name="code" placeholder="12345" autocomplete="one-time-code" autofocus required>
+    <button class="primary">Sign in</button>
+  </form>
+  <form method="post" action="/accounts/login" class="row" style="margin-top:8px">
+    <input type="hidden" name="phone" value="{{ a.phone }}">
+    <button class="sm">Resend code</button>
+  </form>
+  {% else %}
+  <h3>Two-factor password for {{ a.phone }}</h3>
+  <form method="post" action="/accounts/{{ a.id }}/password" class="row">
+    <input type="password" name="password" autofocus required>
+    <button class="primary">Sign in</button>
+  </form>
+  {% endif %}
+</div>
+{% endfor %}
+
+<div class="panel">
+  <h3>Add account</h3>
+  <form method="post" action="/accounts/login" class="row">
+    <input type="text" name="phone" placeholder="+79991234567" required>
+    <button class="primary">Send code</button>
+  </form>
+</div>
+{% endblock %}

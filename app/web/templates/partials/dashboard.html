@@ -1,0 +1,65 @@
+<div class="grid">
+  {% for key in ("new", "queued", "downloading", "done", "failed", "duplicate") %}
+  <a class="stat" href="/files?status={{ key }}"><div class="n">{{ counts[key] }}</div><div class="l">{{ key }}</div></a>
+  {% endfor %}
+</div>
+
+<h2>Accounts</h2>
+<div class="panel">
+  <table>
+    <tr><th>Phone</th><th>Name</th><th>Status</th><th>Queued</th><th></th></tr>
+    {% for a in accounts %}
+    <tr>
+      <td>{{ a.phone }}</td>
+      <td>{{ a.display_name or "" }}</td>
+      <td>
+        <span class="badge {{ a.status }}">{{ a.status }}</span>
+        {% if a.status == "active" and not a.connected %}<span class="badge error">disconnected</span>{% endif %}
+        {% if a.paused %}<span class="badge">paused</span>{% endif %}
+        {% if a.flood_until %}<span class="badge failed">flood wait until {{ a.flood_until.strftime("%H:%M:%S") }} UTC</span>{% endif %}
+        {% if a.error %}<span class="small muted">{{ a.error }}</span>{% endif %}
+      </td>
+      <td>{{ a.queued }}</td>
+      <td><form class="inline" method="post" action="/accounts/{{ a.id }}/pause"><button class="sm">{{ "Resume" if a.paused else "Pause" }}</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">No accounts yet — <a href="/accounts">add one</a>.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<h2>Active downloads</h2>
+<div class="panel">
+  <table>
+    <tr><th>File</th><th>Chat</th><th style="width:200px">Progress</th><th></th></tr>
+    {% for f in active %}
+    {% set p = progress.get(f.id) %}
+    {% set done_bytes = p.downloaded if p else f.downloaded_bytes %}
+    <tr data-file-id="{{ f.id }}">
+      <td class="name" title="{{ f.name }}">{{ f.name }}</td>
+      <td class="muted">{{ f.chat_title }}</td>
+      <td><div class="bar"><i style="width: {{ (100 * done_bytes / f.size) if f.size else 0 }}%"></i></div></td>
+      <td class="small muted progress-text">{{ done_bytes | human_size }} / {{ f.size | human_size }}{% if p and p.speed %} · {{ p.speed | human_size }}/s{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">Idle.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if failures %}
+<h2>Recent failures</h2>
+<div class="panel">
+  <table>
+    <tr><th>File</th><th>Chat</th><th>Error</th></tr>
+    {% for f in failures %}
+    <tr>
+      <td class="name" title="{{ f.name }}">{{ f.name }}</td>
+      <td class="muted">{{ f.chat_title }}</td>
+      <td class="small">{{ f.error }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form method="post" action="/files/queue-all" style="margin-top:8px"><input type="hidden" name="status" value="failed"><input type="hidden" name="back" value="/"><button class="sm">Retry all failed</button></form>
+</div>
+{% endif %}

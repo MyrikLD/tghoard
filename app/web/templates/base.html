@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}tghoard{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+<nav>
+  <span class="brand">tghoard</span>
+  <a href="/" class="{{ 'active' if request.url.path == '/' }}">Dashboard</a>
+  <a href="/chats" class="{{ 'active' if request.url.path.startswith('/chats') }}">Chats</a>
+  <a href="/files" class="{{ 'active' if request.url.path.startswith('/files') }}">Files</a>
+  <a href="/accounts" class="{{ 'active' if request.url.path.startswith('/accounts') }}">Accounts</a>
+</nav>
+<main>
+{% block content %}{% endblock %}
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

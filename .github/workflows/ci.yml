@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv python install 3.14
+      - run: uv sync --locked
+      - run: .venv/bin/ruff check app tests
+      - run: .venv/bin/ruff format --check app tests
+      - run: .venv/bin/pytest -q
+        env:
+          TELEGRAM_API_ID: "1"
+          TELEGRAM_API_HASH: ci
+      - name: Migrations apply on an empty database
+        run: .venv/bin/alembic upgrade head
+        env:
+          TELEGRAM_API_ID: "1"
+          TELEGRAM_API_HASH: ci
+          DATA_DIR: ${{ runner.temp }}/data
