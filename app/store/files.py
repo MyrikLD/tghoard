@@ -2,7 +2,7 @@ from collections.abc import Iterable, Sequence
 from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel, Field
-from sqlalchemy import RowMapping, func, select, update
+from sqlalchemy import RowMapping, delete, func, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -270,6 +270,30 @@ async def set_new(session: AsyncSession, file_id: int) -> None:
         .where(File.id == file_id)
         .values(status=FileStatus.NEW, queued_at=None, downloaded_bytes=0, error=None)
     )
+
+
+async def list_by_ids(session: AsyncSession, file_ids: Iterable[int]) -> Sequence[RowMapping]:
+    rows = await session.execute(select(*FILE_COLUMNS).where(File.id.in_(list(file_ids))))
+    return rows.mappings().all()
+
+
+async def mark_missing(session: AsyncSession, file_ids: Iterable[int]) -> int:
+    """Downloaded files that are gone from disk go back to `new` so they can be fetched again."""
+    ids = list(file_ids)
+    if not ids:
+        return 0
+    stmt = (
+        update(File)
+        .where(File.id.in_(ids), File.status == FileStatus.DONE)
+        .values(status=FileStatus.NEW, path=None, downloaded_bytes=0, finished_at=None)
+    )
+    result = await session.execute(stmt)
+    return result.rowcount
+
+
+async def delete_files(session: AsyncSession, file_ids: Iterable[int]) -> int:
+    result = await session.execute(delete(File).where(File.id.in_(list(file_ids))))
+    return result.rowcount
 
 
 async def claim_next(session: AsyncSession, account_id: int) -> RowMapping | None:

@@ -38,6 +38,7 @@
   <div class="row" style="margin-bottom: 8px">
     <button class="sm primary" formaction="/files/queue">Queue selected</button>
     <button class="sm" formaction="/files/unqueue">Unqueue / cancel selected</button>
+    <button class="sm danger" formaction="/files/delete" onclick="return confirm('Delete selected records and their downloaded files from disk?')">Delete selected</button>
     <span class="muted">|</span>
     <button class="sm" formaction="/files/queue-all" name="status" value="new">Queue all new matching filter</button>
     <button class="sm" formaction="/files/queue-all" name="status" value="failed">Retry all failed matching filter</button>

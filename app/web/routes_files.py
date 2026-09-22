@@ -10,7 +10,7 @@ from app.store import chats as chats_store
 from app.store import files as files_store
 from app.store.files import FileFilter
 from app.telegram.naming import TemplateError, context_for, render_path
-from app.web.deps import RuntimeDep, SessionDep, templates
+from app.web.deps import RuntimeDep, SessionDep, relative_path, templates
 
 router = APIRouter(prefix="/files")
 PAGE = 100
@@ -48,6 +48,10 @@ def _parse_filter(
         date_from=day(date_from, end=False),
         date_to=day(date_to, end=True),
     )
+
+
+def _on_disk(runtime, path: str | None) -> bool:
+    return bool(path) and (runtime.settings.download_dir / relative_path(path)).is_file()
 
 
 def _planned_path(row, default_template: str) -> str:
@@ -102,6 +106,13 @@ async def files_page(
         return RedirectResponse("/files", status_code=303)
     total = await files_store.count_files(session, flt)
     rows = await files_store.list_files(session, flt, PAGE, (page - 1) * PAGE, sort, desc)
+    missing = [
+        r["id"] for r in rows if r["status"] == FileStatus.DONE and not _on_disk(runtime, r["path"])
+    ]
+    if missing:
+        await files_store.mark_missing(session, missing)
+        await session.commit()
+        rows = await files_store.list_files(session, flt, PAGE, (page - 1) * PAGE, sort, desc)
     chats = await chats_store.list_chats(session)
     counts = await files_store.count_by_status(session, flt.chat_id)
     targets = {r["id"]: _planned_path(r, runtime.settings.path_template) for r in rows}
@@ -162,6 +173,33 @@ async def unqueue_selected(
         await session.commit()
         for file_id in ids:
             await runtime.downloader.cancel_file(file_id)
+    return RedirectResponse(back, status_code=303)
+
+
+@router.post("/delete")
+async def delete_selected(
+    request: Request,
+    session: SessionDep,
+    runtime: RuntimeDep,
+    back: Annotated[str, Form()] = "/files",
+):
+    """Remove the records and, for downloaded files, the files on disk.
+
+    A later scan of the chat will list the messages again as `new`.
+    """
+    form = await request.form()
+    ids = [int(v) for v in form.getlist("ids")]
+    if not ids:
+        return RedirectResponse(back, status_code=303)
+    for file_id in ids:
+        await runtime.downloader.cancel_file(file_id)
+    rows = await files_store.list_by_ids(session, ids)
+    for row in rows:
+        if row["status"] == FileStatus.DONE and row["path"]:
+            path = runtime.settings.download_dir / relative_path(row["path"])
+            path.unlink(missing_ok=True)
+    await files_store.delete_files(session, ids)
+    await session.commit()
     return RedirectResponse(back, status_code=303)
 
 
