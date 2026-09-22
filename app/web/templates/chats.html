@@ -27,25 +27,25 @@
 {% for c in chats %}
 {% set st = stats[c.id] %}
 <div class="panel" id="chat-{{ c.id }}">
-  <div class="row" style="justify-content: space-between">
-    <div>
-      <strong>{{ c.title }}</strong>
-      <span class="badge">{{ c.kind }}</span>
-      <span class="muted small">{{ c.account_phone }} · id {{ c.tg_chat_id }} · scanned up to #{{ c.last_scanned_msg_id }}</span>
-      {% if not c.enabled %}<span class="badge failed">disabled</span>{% endif %}
-      {% if c.watch %}<span class="badge active">watch</span>{% endif %}
-      {% if scanning[c.id] or c.scan_status == "scanning" %}<span class="badge scanning">scanning</span>{% endif %}
-      {% if c.scan_status == "error" %}<span class="badge error" title="{{ c.scan_error }}">scan error</span>{% endif %}
-    </div>
-    <div class="row">
-      <a class="small" href="/files?chat_id={{ c.id }}">
-        {{ st.new }} new · {{ st.queued }} queued · {{ st.downloading }} active · {{ st.done }} done · {{ st.failed }} failed
-      </a>
-      <form class="inline" method="post" action="/chats/{{ c.id }}/scan"><button class="sm" {% if scanning[c.id] %}disabled{% endif %}>Scan</button></form>
-      <form class="inline" method="post" action="/chats/{{ c.id }}/rescan" onsubmit="return confirm('Scan the whole history again?')"><button class="sm" {% if scanning[c.id] %}disabled{% endif %}>Rescan</button></form>
-      <form class="inline" method="post" action="/chats/{{ c.id }}/queue-all"><button class="sm primary">Queue all new</button></form>
-      <form class="inline" method="post" action="/chats/{{ c.id }}/delete" onsubmit="return confirm('Remove chat and its file records? Downloaded files stay on disk.')"><button class="sm danger">Remove</button></form>
-    </div>
+  <div>
+    <strong>{{ c.title }}</strong>
+    <span class="badge">{{ c.kind }}</span>
+    <span class="muted small">{{ c.account_phone }} · id {{ c.tg_chat_id }} · scanned up to #{{ c.last_scanned_msg_id }}</span>
+    {% if not c.enabled %}<span class="badge failed">disabled</span>{% endif %}
+    {% if c.watch %}<span class="badge active">watch</span>{% endif %}
+    {% if scanning[c.id] or c.scan_status == "scanning" %}<span class="badge scanning">scanning</span>{% endif %}
+    {% if c.scan_status == "error" %}<span class="badge error" title="{{ c.scan_error }}">scan error</span>{% endif %}
+  </div>
+  <div style="margin-top: 6px">
+    <a class="small" href="/files?chat_id={{ c.id }}">
+      {{ st.new }} new · {{ st.queued }} queued · {{ st.downloading }} active · {{ st.done }} done · {{ st.failed }} failed
+    </a>
+  </div>
+  <div class="row" style="margin-top: 8px">
+    <form class="inline" method="post" action="/chats/{{ c.id }}/scan"><button class="sm" {% if scanning[c.id] %}disabled{% endif %}>Scan</button></form>
+    <form class="inline" method="post" action="/chats/{{ c.id }}/rescan" onsubmit="return confirm('Scan the whole history again?')"><button class="sm" {% if scanning[c.id] %}disabled{% endif %}>Rescan</button></form>
+    <form class="inline" method="post" action="/chats/{{ c.id }}/queue-all"><button class="sm primary">Queue all new</button></form>
+    <form class="inline" method="post" action="/chats/{{ c.id }}/delete" onsubmit="return confirm('Remove chat and its file records? Downloaded files stay on disk.')"><button class="sm danger">Remove</button></form>
   </div>
   {% if c.scan_error %}<div class="small" style="color: var(--err); margin-top: 6px">{{ c.scan_error }}</div>{% endif %}
   <details>

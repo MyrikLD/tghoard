@@ -86,7 +86,6 @@ class Scanner:
                         self._publish_scan(chat_id, ScanStatus.SCANNING, found)
                 found += await self._flush(chat, batch, max_seen if checkpoint_each_batch else None)
             async with transaction() as s:
-                await files_store.fill_album_captions(s, chat_id)
                 await chats_store.set_last_scanned(s, chat_id, max_seen)
                 await chats_store.set_scan_status(s, chat_id, ScanStatus.IDLE)
             self._publish_scan(chat_id, ScanStatus.IDLE, found)
@@ -103,8 +102,11 @@ class Scanner:
     async def _flush(self, chat, batch: list[FileMeta], checkpoint: int | None) -> int:
         if not batch and checkpoint is None:
             return 0
+        albums = {m.grouped_id for m in batch if m.grouped_id is not None}
         async with transaction() as s:
             inserted = await files_store.insert_files(s, chat["id"], batch, chat["auto_queue"])
+            if albums:
+                await files_store.fill_album_captions(s, chat["id"], albums)
             if checkpoint is not None:
                 await chats_store.set_last_scanned(s, chat["id"], checkpoint)
         if inserted and chat["auto_queue"] and self.on_files_added:
@@ -155,7 +157,7 @@ class Scanner:
                 return
             inserted = await files_store.insert_files(s, chat["id"], [meta], chat["auto_queue"])
             if inserted and meta.grouped_id is not None:
-                await files_store.fill_album_captions(s, chat["id"])
+                await files_store.fill_album_captions(s, chat["id"], [meta.grouped_id])
         if inserted:
             self._bus.publish("chat.new_file", {"chat_id": chat["id"], "name": meta.name})
             if chat["auto_queue"] and self.on_files_added:

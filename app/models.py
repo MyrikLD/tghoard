@@ -73,6 +73,7 @@ class File(Base):
         sa.UniqueConstraint("chat_id", "message_id"),
         sa.Index("ix_files_status_queued", "status", "queued_at"),
         sa.Index("ix_files_doc_id", "doc_id"),
+        sa.Index("ix_files_chat_grouped", "chat_id", "grouped_id"),
     )
 
     id = sa.Column(sa.Integer, primary_key=True)

@@ -95,8 +95,13 @@ async def insert_files(
     return result.rowcount
 
 
-async def fill_album_captions(session: AsyncSession, chat_id: int) -> int:
-    """Albums carry their caption on one message only; copy it to the rest of the group."""
+async def fill_album_captions(
+    session: AsyncSession, chat_id: int, grouped_ids: Iterable[int] | None = None
+) -> int:
+    """Albums carry their caption on one message only; copy it to the rest of the group.
+
+    `grouped_ids` limits the work to the albums just touched; None means the whole chat.
+    """
     sibling = File.__table__.alias("sibling")
     caption_of_group = (
         select(sibling.c.caption)
@@ -119,6 +124,11 @@ async def fill_album_captions(session: AsyncSession, chat_id: int) -> int:
         )
         .values(caption=caption_of_group)
     )
+    if grouped_ids is not None:
+        ids = list(grouped_ids)
+        if not ids:
+            return 0
+        stmt = stmt.where(File.grouped_id.in_(ids))
     result = await session.execute(stmt)
     return result.rowcount
 

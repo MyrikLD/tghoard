@@ -14,7 +14,7 @@ from app.config import settings
 PRAGMAS = (
     "PRAGMA journal_mode=WAL",
     "PRAGMA synchronous=NORMAL",
-    "PRAGMA busy_timeout=5000",
+    "PRAGMA busy_timeout=15000",
     "PRAGMA foreign_keys=ON",
 )
 
